@@ -81,13 +81,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2800);
   };
 
+  // --- Cart helpers (uses localStorage key 'velvet_cart')
+  const CART_KEY = 'velvet_cart';
+
+  const getCart = () => {
+    try {
+      return JSON.parse(localStorage.getItem(CART_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const saveCart = (cart) => {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    // trigger storage event for other windows
+    try {
+      localStorage.setItem(CART_KEY + '_updated_at', Date.now());
+    } catch (e) {}
+  };
+
+  const addItemToCart = (item) => {
+    const cart = getCart();
+    // try to find existing entry by name+price (simple dedupe rule)
+    const existing = cart.find((c) => c.name === item.name && c.price === item.price && c.image === item.image);
+    if (existing) {
+      existing.quantity = (existing.quantity || 1) + (item.quantity || 1);
+    } else {
+      item.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      item.quantity = item.quantity || 1;
+      cart.push(item);
+    }
+    saveCart(cart);
+  };
+
+  const openCartWindow = () => {
+    window.open('cart.html', 'velvetCart', 'width=480,height=720');
+  };
+
   document.querySelectorAll('.add-to-cart').forEach((button) => {
     button.addEventListener('click', (event) => {
       const card = event.currentTarget.closest('.product-card');
-      const name = card?.dataset.name || 'Item';
+      const name = (card?.dataset.name || card?.querySelector('h3')?.textContent || 'Item').toString().trim();
+      const priceRaw = card?.dataset.price || card?.querySelector('.price')?.textContent || '';
+      const price = parseFloat(String(priceRaw).replace(/[^0-9.]/g, '')) || 0;
+      const img = card?.querySelector('img')?.src || '';
+
+      const item = { name, price, image: img, quantity: 1, addedAt: Date.now() };
+      addItemToCart(item);
       showToast(`${name} added to your cart.`, 'success');
     });
   });
+
+  // Open cart page when header cart button is clicked
+  const headerCartBtn = document.getElementById('header-cart');
+  if (headerCartBtn) {
+    headerCartBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCartWindow();
+    });
+  }
 
   document.querySelectorAll('.toggle-favorite').forEach((button) => {
     button.addEventListener('click', (event) => {
