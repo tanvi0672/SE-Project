@@ -10,10 +10,13 @@ app = Flask(__name__, template_folder='../frontend',
 # Initialize CORS
 CORS(app)
 
+# Temporary in-memory storage for users (replace with database in production)
+users = {}
+
 @app.route('/', methods=['GET'])
 def home():
     # Corrected the typo from 'rendrer_template' to 'render_template'
-    return render_template('index.html')
+    return render_template('login.html')
 
 @app.route('/api/signup', methods=['POST'])
 def signup():
